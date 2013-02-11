@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Komeetanpoika & Tähtiäinen</title>
+  </head>
+<body>
+<canvas id="myCanvas" width="1000" height="600"></canvas>
+<script src="http://localhost:80/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://localhost');
+  var canvas = document.getElementById('myCanvas');
+  var context = canvas.getContext('2d');
+  var imagesLoaded=0;
+  var stack = []; 
+  var ready = false;
+ 
+    function updateCat(track,coordinate){
+	if(ready) {
+    context.drawImage(stack[track],coordinate/10,track*100 , 80, 80);
+       }
+	};
+
+  var cps;
+  socket.on('race', function (data) {
+	console.log(socket.data);
+	cps = JSON.parse(data);
+	document.getElementById("track"+cps.track).innerHTML=cps.speed+" "+cps.coordinate;
+	updateCat(cps.track,cps.coordinate);
+  });
+ 
+ 
+ 
+ socket.on('connect', function (data) {
+   this.data = data;
+   initialize();
+   
+   });
+
+function initialize() {
+  for (var i = 0; i < 6; i++) {    
+    var img = new Image();
+	var bg = new Image();
+	bg.src = "pics/bg.png";
+	context.drawImage(bg,0,0,1000,600);
+    img.src = 'pics/' + i + '.png'; 
+	stack.push(img);
+    img.onload = (function(value){
+       return function(){
+           context.drawImage(stack[value], 0, 0+(value*100), 80, 80);
+       }
+   })(i);
+   ready = true;
+   };
+   };
+
+</script>
+<p id="track0">Test</p>
+<p id="track1">Test</p>
+<p id="track2">Test</p>
+<p id="track3">Test</p>
+<p id="track4">Test</p>
+<p id="track5">Test</p>
+</body>
+</html>
