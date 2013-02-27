@@ -5,77 +5,54 @@
 		<title>Komeetanpoika & Tähtiäinen</title>
 	</head>
 	<body>
-		<canvas id="myCanvas" width="1000" height="600"></canvas>
+		<canvas id="myCanvas" width="1000" height="600" style="background-image:url('pics/bg.png');"></canvas>
 		<script src="http://localhost:80/socket.io/socket.io.js"></script>
 		<script>
 		
 			var socket = io.connect('http://localhost');
-			var canvas = document.getElementById('myCanvas');
-			var context = canvas.getContext('2d');
 			var imagesLoaded=0;
 			var stack = []; 
+			var derby = new Object();
 			var ready = false;
-			var bg = new Image();
-			var derby;
-			var foo;
-			
-			setInterval(animate((new Date()).getTime()),100);
-			
-			function animate(lastTime) {
-				console.log(derby);
-				// update
-				var time = (new Date()).getTime();
-				var timeDiff = time - lastTime;
-				// pixels / second
-				var linearSpeed = 100;
-				var linearDistEachFrame = linearSpeed * timeDiff / 1000;
-
-				// clear
-				context.clearRect(0, 0, canvas.width, canvas.height);
-
-				/* draw
-				for(var i = 0; i < 6; i++){
-					context.drawImage(stack[i], derby.cats[i].coordinate/10, 0+(i*100), 80, 80);
-				};
-
-				request new frame
-				*/ 
-			}
 			
 			function DerbyState(obj){
+				console.log(obj);
 				this.status = obj.status;
 				this.cats = obj.cats;
 				this.tracklenght = obj.tracklenght;
 				this.coordinateUpdateInterval = obj.coordinateUpdateInterval;
 				this.raceEndDelay = obj.raceEndDelay;
 				this.raceStartDelay = obj.raceStartDelay;
-				console.log(this.cats[0].coordinate);
 				
+				this.cps = function(){
+					return cats;
+					};
+			
 				setInterval(function(){
-					context.clearRect(0, 0, canvas.width, canvas.height);
-					context.drawImage(bg,0,0,1000,600)
 					for(var i = 0; i < derby.cats.length; i++){
 						if((derby.cats[i].coordinate < derby.tracklenght) && (derby.status == 'on')){
-							derby.cats[i].coordinate += derby.cats[i].speed * 100;
-							document.getElementById("track"+i).innerHTML=derby.cats[i].coordinate;
-							context.drawImage(stack[i], derby.cats[i].coordinate/10, 0+(i*100), 80, 80);
+							derby.cats[i].coordinate += Math.floor(derby.cats[i].speed * 100);
+							document.getElementById("track"+i).innerHTML=Math.floor(derby.cats[i].coordinate);
 						};
 					};
 				},100);
 			};
 						
 			socket.on('race', function (data) {
+				console.log("Speed update");
 				cps = JSON.parse(data);
 				derby.cats[cps.track].coordinate = cps.coordinate;
 				derby.cats[cps.track].speed = cps.speed;
 			});
 
 			socket.on('connect', function (data) {
+				console.log("Connection established");
 				derby = new DerbyState(JSON.parse(data));
-				initialize();
+				init();
 			});
 			
 			socket.on('update', function (data) {
+				console.log("Status update");
 				temp = JSON.parse(data);
 				derby.status = temp.status;
 				for(var i in derby.cats){
@@ -83,6 +60,7 @@
 					};
 			});
 
+			/*
 			function initialize() {
 				for (var i = 0; i < 6; i++) {    
 					bg.src = "pics/bg.png";
@@ -97,8 +75,54 @@
 							context.drawImage(stack[value], 0, 0+(value*100), 80, 80);
 						}
 					})(i);
-					ready = true;
 				};
+			};
+			*/
+			
+			window.requestAnimFrame = (function(){
+				return  window.requestAnimationFrame       || 
+				window.webkitRequestAnimationFrame || 
+				window.mozRequestAnimationFrame    || 
+				window.oRequestAnimationFrame      || 
+				window.msRequestAnimationFrame     || 
+					function(/* function */ callback, /* DOMElement */ element){
+					window.setTimeout(callback, 1000 / 60);
+				};
+			})();
+			
+			var canvas = document.getElementById('myCanvas');
+			var context = canvas.getContext('2d');
+			
+
+			animate();
+
+			function init() {
+				for (var i = 0; i < 6; i++) {    
+						var img = new Image();
+						img.src = 'pics/' + i + '.png'; 
+						stack.push(img);
+						img.onload = (function(value){
+							return function(){
+								context.drawImage(stack[value], 0, 0+(value*100), 80, 80);
+							}
+						})(i);
+				};
+				ready = true;
+			};
+
+			function animate() {
+				requestAnimFrame( animate );
+				draw();
+			};
+
+			function draw() {
+				if(ready){
+					var time = new Date().getTime() * 0.002;
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					for (var i = 0; i < 6; i++){
+						context.drawImage(stack[i], derby.cats[i].coordinate/10, 0+(i*100), 80, 80);
+					}
+				}
 			};
 			
 		</script>

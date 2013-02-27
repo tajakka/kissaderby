@@ -3,9 +3,9 @@ var derby = new derbyStateMachine();
 function derbyStateMachine(){
 	var defaultNames = ["Nemo", "Misse", "Tyyne", "Silkkihieno", "Sirius", "Growltiger"];
 	var cats = [];
-	var tracklength = 10000;
+	var tracklength = 9500;
 	var coordinateUpdateInterval = 100;
-	var speedUpdateInterval = 5000;
+	var speedUpdateInterval = 2500;
 	var catsInGoal = 0;
 	var raceEndDelay = 10000;
 	var raceStartDelay = 2000;
@@ -66,7 +66,7 @@ function derbyStateMachine(){
 	}
 	
 	function randomizeCatSpeed(cat){
-		cat.speed = Math.random();
+		cat.speed = Math.random()/2;
 		sendToClients([cat.track,cat.speed,cat.coordinate,status]);
 	}
 	
@@ -77,8 +77,12 @@ function derbyStateMachine(){
 	function raceOn(cat){
 		var previousTime = new Date();
 		var startTime = new Date();
-		var speed = setInterval(function(){randomizeCatSpeed(cat)},speedUpdateInterval);
-		var coordinate = setInterval(function(){setCatCoordinate(cat,coordinateUpdateInterval);finishedTest()},coordinateUpdateInterval);
+		var speed = setInterval(function(){
+				randomizeCatSpeed(cat)
+				},speedUpdateInterval);
+		var coordinate = setInterval(function(){
+				setCatCoordinate(cat,coordinateUpdateInterval);finishedTest()
+				},coordinateUpdateInterval);
 		function finishedTest(){
 			if(cat.coordinate > tracklength){
 				cat.lastRaceTime = (new Date()-startTime);
@@ -120,8 +124,11 @@ function derbyStateMachine(){
 };
 
 var io = require('socket.io').listen(80);
+io.set('log level', 1);
 
 io.sockets.on('connection', function (socket) {
+	var temp = socket;
+	console.log(temp);
 	sendUpdate('connect');
 });
 
