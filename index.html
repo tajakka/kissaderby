@@ -1,65 +1,112 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Komeetanpoika & Tähtiäinen</title>
-  </head>
-<body>
-<canvas id="myCanvas" width="1000" height="600"></canvas>
-<script src="http://localhost:80/socket.io/socket.io.js"></script>
-<script>
-  var socket = io.connect('http://localhost');
-  var canvas = document.getElementById('myCanvas');
-  var context = canvas.getContext('2d');
-  var imagesLoaded=0;
-  var stack = []; 
-  var ready = false;
- 
-    function updateCat(track,coordinate){
-	if(ready) {
-    context.drawImage(stack[track],coordinate/10,track*100 , 80, 80);
-       }
-	};
+	<head>
+		<meta charset="utf-8">
+		<title>Komeetanpoika & Tähtiäinen</title>
+	</head>
+	<body>
+		<canvas id="myCanvas" width="1000" height="600"></canvas>
+		<script src="http://localhost:80/socket.io/socket.io.js"></script>
+		<script>
+		
+			var socket = io.connect('http://localhost');
+			var canvas = document.getElementById('myCanvas');
+			var context = canvas.getContext('2d');
+			var imagesLoaded=0;
+			var stack = []; 
+			var ready = false;
+			var bg = new Image();
+			var derby;
+			var foo;
+			
+			setInterval(animate((new Date()).getTime()),100);
+			
+			function animate(lastTime) {
+				console.log(derby);
+				// update
+				var time = (new Date()).getTime();
+				var timeDiff = time - lastTime;
+				// pixels / second
+				var linearSpeed = 100;
+				var linearDistEachFrame = linearSpeed * timeDiff / 1000;
 
-  var cps;
-  socket.on('race', function (data) {
-	console.log(socket.data);
-	cps = JSON.parse(data);
-	document.getElementById("track"+cps.track).innerHTML=cps.speed+" "+cps.coordinate;
-	updateCat(cps.track,cps.coordinate);
-  });
- 
- 
- 
- socket.on('connect', function (data) {
-   this.data = data;
-   initialize();
-   
-   });
+				// clear
+				context.clearRect(0, 0, canvas.width, canvas.height);
 
-function initialize() {
-  for (var i = 0; i < 6; i++) {    
-    var img = new Image();
-	var bg = new Image();
-	bg.src = "pics/bg.png";
-	context.drawImage(bg,0,0,1000,600);
-    img.src = 'pics/' + i + '.png'; 
-	stack.push(img);
-    img.onload = (function(value){
-       return function(){
-           context.drawImage(stack[value], 0, 0+(value*100), 80, 80);
-       }
-   })(i);
-   ready = true;
-   };
-   };
+				/* draw
+				for(var i = 0; i < 6; i++){
+					context.drawImage(stack[i], derby.cats[i].coordinate/10, 0+(i*100), 80, 80);
+				};
 
-</script>
-<p id="track0">Test</p>
-<p id="track1">Test</p>
-<p id="track2">Test</p>
-<p id="track3">Test</p>
-<p id="track4">Test</p>
-<p id="track5">Test</p>
-</body>
-</html>
+				request new frame
+				*/ 
+			}
+			
+			function DerbyState(obj){
+				this.status = obj.status;
+				this.cats = obj.cats;
+				this.tracklenght = obj.tracklenght;
+				this.coordinateUpdateInterval = obj.coordinateUpdateInterval;
+				this.raceEndDelay = obj.raceEndDelay;
+				this.raceStartDelay = obj.raceStartDelay;
+				console.log(this.cats[0].coordinate);
+				
+				setInterval(function(){
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					context.drawImage(bg,0,0,1000,600)
+					for(var i = 0; i < derby.cats.length; i++){
+						if((derby.cats[i].coordinate < derby.tracklenght) && (derby.status == 'on')){
+							derby.cats[i].coordinate += derby.cats[i].speed * 100;
+							document.getElementById("track"+i).innerHTML=derby.cats[i].coordinate;
+							context.drawImage(stack[i], derby.cats[i].coordinate/10, 0+(i*100), 80, 80);
+						};
+					};
+				},100);
+			};
+						
+			socket.on('race', function (data) {
+				cps = JSON.parse(data);
+				derby.cats[cps.track].coordinate = cps.coordinate;
+				derby.cats[cps.track].speed = cps.speed;
+			});
+
+			socket.on('connect', function (data) {
+				derby = new DerbyState(JSON.parse(data));
+				initialize();
+			});
+			
+			socket.on('update', function (data) {
+				temp = JSON.parse(data);
+				derby.status = temp.status;
+				for(var i in derby.cats){
+					derby.cats = temp.cats;
+					};
+			});
+
+			function initialize() {
+				for (var i = 0; i < 6; i++) {    
+					bg.src = "pics/bg.png";
+					bg.onload = function(){
+						context.drawImage(bg,0,0,1000,600)
+					};
+					var img = new Image();
+					img.src = 'pics/' + i + '.png'; 
+					stack.push(img);
+					img.onload = (function(value){
+						return function(){
+							context.drawImage(stack[value], 0, 0+(value*100), 80, 80);
+						}
+					})(i);
+					ready = true;
+				};
+			};
+			
+		</script>
+		<p id="track0">Test</p>
+		<p id="track1">Test</p>
+		<p id="track2">Test</p>
+		<p id="track3">Test</p>
+		<p id="track4">Test</p>
+		<p id="track5">Test</p>
+	</body>
+</html>

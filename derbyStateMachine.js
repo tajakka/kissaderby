@@ -9,7 +9,7 @@ function derbyStateMachine(){
 	var catsInGoal = 0;
 	var raceEndDelay = 10000;
 	var raceStartDelay = 2000;
-	var status = "setup";
+	this.status = "setup";
 	function Cat(name){
 		this.name = name;
 		this.speed = 0;
@@ -28,9 +28,15 @@ function derbyStateMachine(){
 			cats[i].track = i;
 		}
 	}
-	this.status = function(){
-		return {"status":status,"cats":cats};
-	}
+	this.stats = function(){
+		return {"status":status,
+			"cats":cats,
+			"tracklenght":tracklength,
+			"coordinateUpdateInterval":coordinateUpdateInterval,
+			"raceEndDelay":raceEndDelay,
+			"raceStartDelay":raceStartDelay
+			}
+	};
 	
 	function _millisecondsToStr(milliseconds){
     // TIP: to find current time in milliseconds, use:
@@ -61,7 +67,7 @@ function derbyStateMachine(){
 	
 	function randomizeCatSpeed(cat){
 		cat.speed = Math.random();
-		sendToClients([cat.track,cat.speed,cat.coordinate]);
+		sendToClients([cat.track,cat.speed,cat.coordinate,status]);
 	}
 	
 	function setCatCoordinate(cat,coordinateUpdateInterval){
@@ -91,9 +97,9 @@ function derbyStateMachine(){
 		status="off"
 		for(var i = 0; i < cats.length; i++){
 			//sendToClients(cats[i].name+" time:"+_millisecondsToStr(cats[i].lastRaceTime));
-			}
+			};
 		setTimeout(function() {raceSetup()},raceEndDelay);	
-	}
+	};
 	
 	function raceSetup(){
 		status = "setup";
@@ -101,28 +107,31 @@ function derbyStateMachine(){
 		for(i in cats) {
 			cats[i].speed = 0;
 			cats[i].coordinate = 0;
-		}
+		};
 		setTimeout(function() {
 			for(var i = 0; i < cats.length; i++){
 				raceOn(cats[i]);
 			};
 			status="on";
+			sendUpdate('update');
 		},raceStartDelay);
-	}	
+	};	
 	raceSetup();
-}
+};
 
 var io = require('socket.io').listen(80);
 
 io.sockets.on('connection', function (socket) {
-	socket.emit('connect',derby.status());
-	console.log(derby.status());
+	sendUpdate('connect');
 });
 
 function sendToClients(data) {
 	var send = {"track":data[0],"speed":data[1],"coordinate":data[2]};
 	io.sockets.emit('race',JSON.stringify(send));
-}
+};
 
+function sendUpdate(channel) {
+	io.sockets.emit(channel,JSON.stringify(derby.stats()));
+};
 
 
