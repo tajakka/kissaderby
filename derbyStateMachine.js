@@ -1,4 +1,5 @@
 var derby = new derbyStateMachine();
+//WebStorm commit test
 
 function derbyStateMachine(){
 	var defaultNames = ["Nemo", "Misse", "Tyyne", "Silkkihieno", "Sirius", "Growltiger"];
