@@ -128,8 +128,8 @@ var io = require('socket.io').listen(80);
 io.set('log level', 1);
 
 io.sockets.on('connection', function (socket) {
+    console.log("clients connecter:"+io.sockets.clients().length);
 	var temp = socket;
-	console.log(temp);
 	sendUpdate('connect');
 });
 
