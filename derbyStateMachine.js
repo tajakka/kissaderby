@@ -1,14 +1,27 @@
-var derby = new derbyStateMachine();
+var io = require('socket.io').listen(80);
+io.set('log level', 1);
+io.sockets.on('connection', function (socket) {
+    sendUpdate('connect');
+});
 
-function derbyStateMachine(){
+function sendToClients(data) {
+    var send = {"track":data[0],"speed":data[1],"coordinate":data[2],"status":data[3]};
+    io.sockets.emit('race',JSON.stringify(send));
+}
+
+function sendUpdate(channel) {
+    io.sockets.emit(channel,JSON.stringify(derby.stats()));
+}
+
+var derby = new DerbyStateMachine();
+function DerbyStateMachine(){
 	var defaultNames = ["Nemo", "Misse", "Tyyne", "Silkkihieno", "Sirius", "Growltiger"];
 	var cats = [];
-	var tracklength = 9500;
+	var trackLength = 9500;
 	var coordinateUpdateInterval = 100;
-	var speedUpdateInterval = 2500;
 	var catsInGoal = 0;
 	var raceEndDelay = 10000;
-	var raceStartDelay = 2000;
+	var raceStartDelay = 5000;
 	var status = "setup";
 	function Cat(name){
 		this.name = name;
@@ -23,21 +36,19 @@ function derbyStateMachine(){
 		}
 	}
 	else{
-		for(var i = 0; i < defaultNames.length; i++){
-			cats[i] = new Cat(defaultNames[i]);
-			cats[i].track = i;
+		for(var j = 0; j < defaultNames.length; j++){
+			cats[j] = new Cat(defaultNames[j]);
+			cats[j].track = j;
 		}
 		
 	}
 	this.stats = function(){
 		return {"status":status,
 			"cats":cats,
-			"tracklenght":tracklength,
-			"coordinateUpdateInterval":coordinateUpdateInterval,
-			"raceEndDelay":raceEndDelay,
-			"raceStartDelay":raceStartDelay
-			}
+			"trackLength":trackLength
+        }
 	};
+
 	
 	function _millisecondsToStr(milliseconds){
     // TIP: to find current time in milliseconds, use:
@@ -65,41 +76,49 @@ function derbyStateMachine(){
 		}
 		return 'less then a second'; //'just now' //or other string you like;
 	}
-	
+
+    /*
 	function randomizeCatSpeed(cat){
 		cat.speed = Math.random()/2;
 		sendToClients([cat.track,cat.speed,cat.coordinate,status]);
 	}
-	
+	*/
+
 	function setCatCoordinate(cat,coordinateUpdateInterval){
-		cat.coordinate += cat.speed * coordinateUpdateInterval;
+		if(cat.coordinate < trackLength) {
+            cat.coordinate += cat.speed * coordinateUpdateInterval;
+            //sendToClients([cat.track,cat.speed,cat.coordinate,status]);
+        }
 	}
 	
 	function randomizer(){
-		if(status == 'on'){
-			var randomTrack = Math.floor(Math.random()*cats.length);
-			var randomSpeed = Math.random()/2;
-			cats[randomTrack].speed = randomSpeed;
-			sendToClients([randomTrack,randomSpeed,cats[randomTrack].coordinate,status]);
-			setTimeout(randomizer,1000);
-			};
-		};
+		var randomTrack = Math.floor(Math.random()*cats.length);
+        var randomSpeed = Math.random()/2;
+        cats[randomTrack].speed = randomSpeed;
+        if(cats[randomTrack].coordinate < trackLength) {
+            sendToClients([randomTrack,randomSpeed,cats[randomTrack].coordinate,status]);
+        }
+        if(status == 'on'){
+            setTimeout(randomizer,Math.floor(Math.random()*1000));
+        }
+    }
 	
 	function raceOn(cat){
+        var startTime = new Date();
+        /*
 		var previousTime = new Date();
-		var startTime = new Date();
 		var speed = setInterval(function(){
 				randomizeCatSpeed(cat)
 				},speedUpdateInterval);
+		*/
 		var coordinate = setInterval(function(){
-				setCatCoordinate(cat,coordinateUpdateInterval);finishedTest()
+				setCatCoordinate(cat,coordinateUpdateInterval);
+                finishedTest();
 				},coordinateUpdateInterval);
 		function finishedTest(){
-			if(cat.coordinate > tracklength){
+			if(cat.coordinate > trackLength){
 				cat.lastRaceTime = (new Date()-startTime);
-				clearInterval(speed);
 				clearInterval(coordinate);
-				//sendToClients("Finished: "+ cat.name +" Time:"+cat.lastRaceTime);
 				catsInGoal++;
 				if(catsInGoal == cats.length){
 					raceOff();
@@ -109,46 +128,35 @@ function derbyStateMachine(){
 	}
 	
 	function raceOff(){
-		status="off"
-		for(var i = 0; i < cats.length; i++){
+		status="off";
+		/*for(var i = 0; i < cats.length; i++){
 			//sendToClients(cats[i].name+" time:"+_millisecondsToStr(cats[i].lastRaceTime));
-			};
-		setTimeout(function() {raceSetup()},raceEndDelay);	
-	};
+			}
+		*/
+        sendUpdate('update');
+		setTimeout(function() {raceSetup()},raceEndDelay);
+	}
 	
 	function raceSetup(){
 		status = "setup";
 		catsInGoal = 0;
-		for(i in cats) {
+		for(var i in cats) {
 			cats[i].speed = 0;
 			cats[i].coordinate = 0;
-		};
+            sendToClients([i,0,0,status]);
+		}
 		setTimeout(function() {
 			for(var i = 0; i < cats.length; i++){
 				raceOn(cats[i]);
-			};
+			}
 			status="on";
-			sendUpdate('update');
+            sendUpdate('update');
+            randomizer();
 		},raceStartDelay);
-	};	
+	}
 	raceSetup();
-	randomizer();
-};
+}
 
-var io = require('socket.io').listen(80);
-io.set('log level', 1);
 
-io.sockets.on('connection', function (socket) {
-	sendUpdate('connect');
-});
-
-function sendToClients(data) {
-	var send = {"track":data[0],"speed":data[1],"coordinate":data[2]};
-	io.sockets.emit('race',JSON.stringify(send));
-};
-
-function sendUpdate(channel) {
-	io.sockets.emit(channel,JSON.stringify(derby.stats()));
-};
 
 
