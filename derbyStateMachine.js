@@ -1,5 +1,4 @@
 var derby = new derbyStateMachine();
-//WebStorm commit test2
 
 function derbyStateMachine(){
 	var defaultNames = ["Nemo", "Misse", "Tyyne", "Silkkihieno", "Sirius", "Growltiger"];
@@ -10,7 +9,7 @@ function derbyStateMachine(){
 	var catsInGoal = 0;
 	var raceEndDelay = 10000;
 	var raceStartDelay = 2000;
-	this.status = "setup";
+	var status = "setup";
 	function Cat(name){
 		this.name = name;
 		this.speed = 0;
@@ -28,6 +27,7 @@ function derbyStateMachine(){
 			cats[i] = new Cat(defaultNames[i]);
 			cats[i].track = i;
 		}
+		
 	}
 	this.stats = function(){
 		return {"status":status,
@@ -74,6 +74,16 @@ function derbyStateMachine(){
 	function setCatCoordinate(cat,coordinateUpdateInterval){
 		cat.coordinate += cat.speed * coordinateUpdateInterval;
 	}
+	
+	function randomizer(){
+		if(status == 'on'){
+			var randomTrack = Math.floor(Math.random()*cats.length);
+			var randomSpeed = Math.random()/2;
+			cats[randomTrack].speed = randomSpeed;
+			sendToClients([randomTrack,randomSpeed,cats[randomTrack].coordinate,status]);
+			setTimeout(randomizer,1000);
+			};
+		};
 	
 	function raceOn(cat){
 		var previousTime = new Date();
@@ -122,14 +132,13 @@ function derbyStateMachine(){
 		},raceStartDelay);
 	};	
 	raceSetup();
+	randomizer();
 };
 
 var io = require('socket.io').listen(80);
 io.set('log level', 1);
 
 io.sockets.on('connection', function (socket) {
-    console.log("clients connecter:"+io.sockets.clients().length);
-	var temp = socket;
 	sendUpdate('connect');
 });
 
